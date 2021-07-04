@@ -120,8 +120,8 @@ Example:
   show-busy-java-threads 3 10  # update every 3 seconds, update 10 times
 
 Output control:
-  -p, --pid <java pid>      find out the highest cpu consumed threads from
-                            the specified java process.
+  -p, --pid <java pid(s)>   find out the highest cpu consumed threads from
+                            the specified java process. support pid list(eg: 42,99).
                             default from all java process.
   -c, --count <num>         set the thread count to show, default is 5.
                             set count 0 to show all threads.
@@ -159,6 +159,7 @@ CPU usage calculation control:
 
 Miscellaneous:
   -h, --help                display this help and exit.
+  -V, --version             display version information and exit.
 ```
 
 ### 示例
@@ -210,7 +211,7 @@ $ show-busy-java-threads
 
 ### 贡献者
 
-- [silentforce](https://github.com/silentforce)改进此脚本，增加对环境变量`JAVA_HOME`的判断。 [#15](https://github.com/oldratlee/useful-scripts/pull/15)
+- [silentforce](https://github.com/silentforce) 改进此脚本，增加对环境变量`JAVA_HOME`的判断。 [#15](https://github.com/oldratlee/useful-scripts/pull/15)
 - [liuyangc3](https://github.com/liuyangc3)
     - 发现并解决`jstack`非当前用户`Java`进程的问题。 [#50](https://github.com/oldratlee/useful-scripts/pull/50)
     - 优化性能，通过`read -a`简化反复的`awk`操作。 [#51](https://github.com/oldratlee/useful-scripts/pull/51)
@@ -233,9 +234,14 @@ $ show-busy-java-threads
 
 ### 用法
 
-- 通过脚本参数指定`Libs`目录，查找目录下`Jar`文件，收集`Jar`文件中`Class`文件以分析重复类。可以指定多个`Libs`目录。  
-    注意，只会查找这个目录下`Jar`文件，不会查找子目录下`Jar`文件。因为`Libs`目录一般不会用子目录再放`Jar`，这样也避免把去查找不期望`Jar`。
-- 通过`-c`选项指定`Class`目录，直接收集这个目录下的`Class`文件以分析重复类。可以指定多个`Class`目录。
+- 通过脚本参数 指定 `Libs`目录，查找目录下`Jar`文件，收集`Jar`文件中`Class`文件以分析重复类。可以指定多个`Libs`目录。
+    - 缺省只会查找指定`Lib`目录下`Jar`文件，不会收集`Lib`目录的子目录下`Jar`文件。
+        - 因为`Libs`目录一般不会用子目录再放`Jar`，也避免把去查找不期望的`Jar`文件。
+        - 可以通过 `-L`选项 设置 收集`Lib`子目录下的`Jar`文件；这样可以简化`Lib`目录的设置，不需要指定完整的`Lib`目录路径。
+    - 对于找到的`Jar`文件，缺省不会进一步收集包含在`Jar`文件中的`Jar`。
+        - 即`FatJar`/`UberJar`的场景，随着像`SpringBoot`的广泛使用，`FatJar`/`UberJar`也比较常见。
+        - 可以通过 `-J`选项 设置 收集包含在`Jar`文件中的`Jar`。
+- 通过`-c`选项 指定 `Class`目录，直接收集这个目录下的`Class`文件以分析重复类。可以多次指定多个`Class`目录。
 
 ```bash
 # 查找当前目录下所有Jar中的重复类
@@ -243,9 +249,9 @@ show-duplicate-java-classes
 
 # 查找多个指定目录下所有Jar中的重复类
 show-duplicate-java-classes path/to/lib_dir1 /path/to/lib_dir2
-# 通过 -L 选项，查找子目录中的Jar文件
+# 通过 -L 选项，收集子目录中的Jar文件
 show-duplicate-java-classes -L path/to/lib_dir1
-# 通过 -J 选项，查找Jar文件中的Jar文件（即查找FatJar中包含的Jar）
+# 通过 -J 选项，收集包含在Jar文件中的Jar文件（即 收集包含在FatJar/UberJar中的Jar）
 show-duplicate-java-classes -J path/to/lib_dir1
 
 # 查找多个指定Class目录下的重复类。 Class目录 通过 -c 选项指定
@@ -260,16 +266,22 @@ Usage: show-duplicate-java-classes [OPTION]... [-c class-dir1 [-c class-dir2] ..
 Find duplicate classes among java lib dirs and class dirs.
 
 Examples:
-  show-duplicate-java-classes  # find jars from current dir
+  show-duplicate-java-classes  # search jars from current dir
   show-duplicate-java-classes path/to/lib_dir1 /path/to/lib_dir2
   show-duplicate-java-classes -c path/to/class_dir1 -c /path/to/class_dir2
+  show-duplicate-java-classes -c path/to/class_dir1 path/to/lib_dir1
+  show-duplicate-java-classes -L path/to/lib_dir1
+  show-duplicate-java-classes -J path/to/lib_dir1
 
 Options:
+  --version             show program's version number and exit
   -h, --help            show this help message and exit
-  -L, --recursive-lib   find jars in the sub-directories of lib dir
-  -J, --recursive-jar   find jars in the jar file
+  -L, --recursive-lib   search jars in the sub-directories of lib dir
+  -J, --recursive-jar   search jars in the jar file
   -c CLASS_DIRS, --class-dir=CLASS_DIRS
                         add class dir
+  -R, --no-find-progress
+                        do not display responsive find progress
 ```
 
 #### `JDK`开发场景使用说明
@@ -344,32 +356,33 @@ COOL! No duplicate classes found!
 ================================================================================
 Find in 150 class paths:
 ================================================================================
-  1: WEB-INF/lib/aopalliance-1.0.jar
-  2: WEB-INF/lib/asm-3.2.jar
-  3: WEB-INF/lib/aspectjrt-1.6.1.jar
-  4: WEB-INF/lib/aspectjweaver-1.6.6.jar
+  1: (contain   9 classes) WEB-INF/lib/aopalliance-1.0.jar
+  2: (contain  25 classes) WEB-INF/lib/asm-5.0.4.jar
+  3: (contain 313 classes) WEB-INF/lib/aviator-5.0.0.jar
+  4: (contain 687 classes) WEB-INF/lib/cassandra-0.6.1.jar
 ...
 
 $ show-duplicate-java-classes -c WEB-INF/classes WEB-INF/lib
-Found duplicate classes in below 9 class paths:
-[1] found 188 duplicate classes in 2 class paths:
-    WEB-INF/lib/jdom-2.0.2.jar
-    WEB-INF/lib/jdom2-2.0.6.jar
-[2] found 150 duplicate classes in 2 class paths:
-    WEB-INF/lib/netty-all-4.0.35.Final.jar
-    WEB-INF/lib/netty-common-4.1.31.Final.jar
-[3] found 148 duplicate classes in 2 class paths:
-    WEB-INF/lib/netty-all-4.0.35.Final.jar
-    WEB-INF/lib/netty-handler-4.1.31.Final.jar
-[4] found 103 duplicate classes in 2 class paths:
-    WEB-INF/lib/hessian-3.0.14.bugfix-tae3.jar
-    WEB-INF/lib/hessian-4.0.38.jar
+Found 1272 duplicate classes in 345 class paths and 9 class path sets:
+[1] found 188(100%) duplicate classes in 3 class paths:
+    1: (contain 188 classes) WEB-INF/lib/jdom-2.0.2.jar
+    2: (contain 195 classes) WEB-INF/lib/jdom2-2.0.6.jar
+    3: (contain 195 classes) WEB-INF/lib/jdom2-2.0.8.jar
+[2] found 150(33.8%) duplicate classes in 2 class paths:
+    1: (contain 1385 classes) WEB-INF/lib/netty-all-4.0.35.Final.jar
+    2: (contain  444 classes) WEB-INF/lib/netty-common-4.1.31.Final.jar
+[3] found 148(55.4%) duplicate classes in 2 class paths:
+    1: (contain 1385 classes) WEB-INF/lib/netty-all-4.0.35.Final.jar
+    2: (contain  267 classes) WEB-INF/lib/netty-handler-4.1.31.Final.jar
+[4] found 103(82.4%) duplicate classes in 2 class paths:
+    1: (contain 125 classes) WEB-INF/lib/hessian-3.0.14.bugfix.jar
+    2: (contain 275 classes) WEB-INF/lib/hessian-4.0.38.jar
 ...
 
 ================================================================================
 Duplicate classes detail info:
 ================================================================================
-[1] found 188 duplicate classes in 2 class paths WEB-INF/lib/jdom-2.0.2.jar WEB-INF/lib/jdom2-2.0.6.jar :
+[1] found 188 duplicate classes in 3 class paths WEB-INF/lib/jdom-2.0.2.jar WEB-INF/lib/jdom2-2.0.6.jar WEB-INF/lib/jdom2-2.0.8.jar :
       1: org/jdom2/Attribute.class
       2: org/jdom2/AttributeList$1.class
       3: org/jdom2/AttributeList$ALIterator.class
@@ -388,18 +401,18 @@ Duplicate classes detail info:
 ================================================================================
 Find in 232 class paths:
 ================================================================================
-  1: WEB-INF/classes
-  2: WEB-INF/lib/HikariCP-2.7.8.jar
-  3: WEB-INF/lib/accessors-smart-1.2.jar
-  4: WEB-INF/lib/alimonitor-jmonitor-1.1.3.jar
-  5: WEB-INF/lib/aopalliance-1.0.jar
-  6: WEB-INF/lib/asm-5.0.4.jar
+  1: (contain  42 classes) WEB-INF/classes
+  2: (contain  70 classes) WEB-INF/lib/HikariCP-2.7.8.jar
+  3: (contain  13 classes) WEB-INF/lib/accessors-smart-1.2.jar
+  4: (contain   9 classes) WEB-INF/lib/aopalliance-1.0.jar
+  5: (contain  25 classes) WEB-INF/lib/asm-5.0.4.jar
+  6: (contain 313 classes) WEB-INF/lib/aviator-5.0.0.jar
 ...
 ```
 
 ### 贡献者
 
-[tgic](https://github.com/tg123)提供此脚本。友情贡献者的链接 [commandlinefu.cn](http://commandlinefu.cn/) | [微博linux命令行精选](http://weibo.com/u/2674868673)
+[tgic](https://github.com/tg123) 提供此脚本。友情贡献者的链接 [commandlinefu.cn](http://commandlinefu.cn/) | [微博linux命令行精选](http://weibo.com/u/2674868673)
 
 <a id="beer-find-in-jarssh"></a>
 <a id="beer-find-in-jars"></a>
@@ -438,9 +451,14 @@ find-in-jars 'log4j\.properties' -a
 find-in-jars 'log4j\.properties' -s ' <-> '
 find-in-jars 'log4j\.properties' -s ' ' | awk '{print $2}'
 
+# -l选项 指定 只列出Jar文件，不显示Jar文件内匹配的文件列表
+# 列出 包含log4j.xml文件的Jar文件：
+find-in-jars -l 'log4j\.xml$'
+
 # 帮助信息
 $ find-in-jars -h
 Usage: find-in-jars [OPTION]... PATTERN
+
 Find files in the jar files under specified directory,
 search jar files recursively(include subdirectory).
 The pattern default is *extended* regex.
@@ -470,9 +488,15 @@ Output control:
   -a, --absolute-path    always print absolute path of jar file
   -s, --separator        specify the separator between jar file and zip entry.
                          default is `!'.
+  -L, --files-not-contained-found
+                         print only names of JAR FILEs NOT contained found
+  -l, --files-contained-found
+                         print only names of JAR FILEs contained found
+  -R, --no-find-progress do not display responsive find progress
 
 Miscellaneous:
   -h, --help             display this help and exit
+  -V, --version          display version information and exit
 ```
 
 注意，Pattern缺省是`grep`的 **扩展**正则表达式。
@@ -483,6 +507,7 @@ Miscellaneous:
 # 在当前目录下的所有Jar文件中，查找出 log4j.properties文件
 $ find-in-jars 'log4j\.properties$'
 ./hadoop-core-0.20.2-cdh3u3.jar!log4j.properties
+......
 
 # 查找出 以Service结尾的类，Jar文件路径输出成绝对路径
 $ find-in-jars 'Service.class$' -a
@@ -498,6 +523,13 @@ WEB-INF/lib/aspectjweaver-1.8.8.jar!org/aspectj/weaver/XlintDefault.properties
 ../deploy/lib/httpcore-4.3.3.jar!org/apache/http/version.properties
 ../deploy/lib/javax.servlet-api-3.0.1.jar!javax/servlet/http/LocalStrings_es.properties
 ......
+
+# 列出 包含properties文件的Jar文件
+$ find-in-jars '\.properties$' -l -d WEB-INF/lib
+WEB-INF/lib/aspectjtools-1.6.2.jar
+WEB-INF/lib/aspectjweaver-1.8.8.jar
+WEB-INF/lib/javax.servlet-api-3.0.1.jar
+......
 ```
 
 ### 运行效果
@@ -508,4 +540,4 @@ WEB-INF/lib/aspectjweaver-1.8.8.jar!org/aspectj/weaver/XlintDefault.properties
 
 ### 参考资料
 
-[在多个Jar(Zip)文件查找Log4J配置文件的Shell命令行](http://oldratlee.com/458/tech/shell/find-file-in-jar-zip-files.html)
+[在多个Jar(Zip)文件查找Log4J配置文件的Shell命令行](http://oldratlee.github.io/458/tech/shell/find-file-in-jar-zip-files.html)

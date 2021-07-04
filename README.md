@@ -1,9 +1,9 @@
 🐌 useful-scripts
 ====================================
 
-<img src="docs/script-logo.png" width="20%" align="right" />
+<img src="docs/script-logo.png" alt="repo-icon" width="20%" align="right" />
 
-[![Build Status](https://img.shields.io/travis/oldratlee/useful-scripts/dev-2.x?logo=travis-ci&logoColor=white)](https://travis-ci.org/oldratlee/useful-scripts)
+[![Build Status](https://img.shields.io/travis/com/oldratlee/useful-scripts/dev-2.x?logo=travis-ci&logoColor=white)](https://travis-ci.com/github/oldratlee/useful-scripts)
 [![GitHub release](https://img.shields.io/github/release/oldratlee/useful-scripts.svg)](https://github.com/oldratlee/useful-scripts/releases)
 [![License](https://img.shields.io/github/license/oldratlee/useful-scripts?color=4D7A97)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Chat at gitter.im](https://img.shields.io/gitter/room/oldratlee/useful-scripts?color=46BC99&logo=gitter&logoColor=white)](https://gitter.im/oldratlee/useful-scripts?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)  
@@ -14,12 +14,17 @@
 
 👉 把平时有用的手动操作做成脚本，这样可以便捷的使用。 ✨
 
-有自己用的好的脚本 或是 平时常用但没有写成脚本的功能，欢迎提供（[提交Issue](https://github.com/oldratlee/useful-scripts/issues))和分享（[Fork后提交代码](https://github.com/oldratlee/useful-scripts/fork)）！ 💖
 
-PS：
+欢迎 👏💖
 
-本仓库的脚本（如`Java`相关脚本）在阿里等公司（如随身云，见[`awesome-scripts`仓库](https://github.com/Suishenyun/awesome-scripts)说明）的线上生产环境部署使用。  
-如果你的公司有部署使用，欢迎使用通过[提交Issue](https://github.com/oldratlee/useful-scripts/issues)告知，方便互相交流反馈～ 💘
+- 建议和提问，[提交 Issue](https://github.com/oldratlee/useful-scripts/issues/new)
+- 贡献和改进，[Fork 后提通过 Pull Request 贡献代码](https://github.com/oldratlee/useful-scripts/fork)
+- 分享 平时常用但没有写成脚本的功能（即需求、想法），[提交Issue](https://github.com/oldratlee/useful-scripts/issues/new)
+- 提供 自己的好用脚本，[Fork 后提通过 Pull Request 提供](https://github.com/oldratlee/useful-scripts/fork)
+
+本仓库的脚本（如`Java`相关脚本）在阿里等公司（如随身云，见[`awesome-scripts`仓库](https://github.com/Suishenyun/awesome-scripts)说明）的线上生产环境部署使用。
+
+如果你的公司有部署使用，欢迎使用通过 [Issue：who's using | 用户反馈收集](https://github.com/oldratlee/useful-scripts/issues/96) 告知，方便互相交流反馈～ 💘
 
 🔰 快速下载&使用
 ----------------------
@@ -56,6 +61,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/oldratlee/useful-scripts/r
     不重排序输入完成整个输入行的去重。相比系统的`uniq`命令加强的是可以跨行去重，不需要排序输入。
 1. [ap and rp](docs/shell.md#-ap-and-rp)  
     批量转换文件路径为绝对路径/相对路径，会自动跟踪链接并规范化路径。
+1. [cp-into-docker-run](docs/shell.md#-cp-into-docker-run)  
+    一个`Docker`使用的便利脚本。拷贝本机的执行文件到指定的`docker container`中并在`docker container`中执行。
 1. [tcp-connection-state-counter](docs/shell.md#-tcp-connection-state-counter)  
     统计各个`TCP`连接状态的个数。用于方便排查系统连接负荷问题。
 1. [xpl and xpf](docs/shell.md#-xpl-and-xpf)  
