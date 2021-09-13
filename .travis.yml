@@ -1,0 +1,36 @@
+# https://github.com/caarlos0-graveyard/shell-ci-build
+# https://github.com/kward/shunit2/blob/master/.travis.yml
+language: shell
+
+addons:
+  homebrew:
+    packages:
+    - coreutils
+    - gnu-sed
+
+# The Ubuntu Linux Build Environments
+#   https://docs.travis-ci.com/user/reference/linux/
+# The macOS Build Environment
+#   https://docs.travis-ci.com/user/reference/osx/
+# Installing Dependencies
+#   https://docs.travis-ci.com/user/installing-dependencies/#installing-packages-on-macos
+jobs:
+  include:
+    - os: osx
+      osx_image: xcode11.3
+    - os: linux
+      dist: precise
+    - os: linux
+      dist: trusty
+    - os: linux
+      dist: xenial
+    - os: linux
+      dist: bionic
+    - os: linux
+      dist: focal
+
+script:
+  - test-cases/integration-test.sh
+
+after_script:
+  - git status --ignored

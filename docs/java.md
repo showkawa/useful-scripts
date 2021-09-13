@@ -27,10 +27,10 @@
 
 -------------------------------
 
-关于`Java`排错与诊断，力荐️`Arthas` ❤️
+关于`Java`排错与诊断，力荐️`Arthas`： ❤️
 
-- [alibaba/arthas: Alibaba Java诊断利器 - github.com](https://github.com/alibaba/arthas)
-- `Arthas`用户文档 https://alibaba.github.io/arthas/
+- `Arthas`用户文档： https://arthas.aliyun.com/doc/quick-start.html
+- GitHub Repo： [alibaba/arthas: Alibaba Java诊断利器](https://github.com/alibaba/arthas)
 
 `Arthas`功能异常(😜)强劲，且在阿里巴巴线上支持使用多年。我自己也常用，一定要看看用用！
 
@@ -51,9 +51,9 @@
 ----------------------
 
 用于快速排查`Java`的`CPU`性能问题(`top us`值过高)，自动查出运行的`Java`进程中消耗`CPU`多的线程，并打印出其线程栈，从而确定导致性能问题的方法调用。  
-目前只支持`Linux`。原因是`Mac`、`Windows`的`ps`命令不支持列出进程的线程`id`，更多信息参见[#33](https://github.com/oldratlee/useful-scripts/issues/33)，欢迎提供解法。
+目前只支持`Linux`。原因是`Mac`、`Windows`的`ps`命令不支持列出进程的线程`id`，更多信息参见 [#33](https://github.com/oldratlee/useful-scripts/issues/33)，欢迎提供解法。
 
-PS，如何操作可以参见[@bluedavy](http://weibo.com/bluedavy)的[《分布式Java应用》](https://book.douban.com/subject/4848587/)的【5.1.1 `CPU`消耗分析】一节，说得很详细：
+PS，如何操作可以参见[`@bluedavy`](http://weibo.com/bluedavy)的[《分布式Java应用》](https://book.douban.com/subject/4848587/)的【5.1.1 `CPU`消耗分析】一节，说得很详细：
 
 1. `top`命令找出消耗`CPU`高的`Java`进程及其线程`id`：
     1. 开启线程显示模式（`top -H`，或是打开`top`后按`H`）
@@ -65,7 +65,8 @@ PS，如何操作可以参见[@bluedavy](http://weibo.com/bluedavy)的[《分布
     1. 在`jstack`输出中查找十六进制的线程`id`（可以用`vim`的查找功能`/0x1234`，或是`grep 0x1234 -A 20`）
 1. 查看对应的线程栈，分析问题
 
-查问题时，会要多次上面的操作以分析确定问题，这个过程**太繁琐太慢了**。
+查问题时，会要多次上面的操作以分析确定问题，这个过程**太繁琐太慢了**。  
+期望整合上面的过程成一个脚本，这样一行命令就可以自动化地搞定。
 
 ### 用法
 
@@ -74,10 +75,12 @@ show-busy-java-threads
 # 从所有运行的Java进程中找出最消耗CPU的线程（缺省5个），打印出其线程栈
 
 # 缺省会自动从所有的Java进程中找出最消耗CPU的线程，这样用更方便
-# 当然你可以手动指定要分析的Java进程Id，以保证只会显示你关心的那个Java进程的信息
+# 当然你可以通过 -p 选项 手动指定要分析的Java进程Id，以保证只会显示你关心的那个Java进程的信息
 show-busy-java-threads -p <指定的Java进程Id>
+show-busy-java-threads -p 42
+show-busy-java-threads -p 42,47
 
-show-busy-java-threads -c <要显示的线程栈数>
+show-busy-java-threads -c <要展示示的线程栈个数>
 
 show-busy-java-threads <重复执行的间隔秒数> [<重复执行的次数>]
 # 多次执行；这2个参数的使用方式类似vmstat命令
@@ -97,14 +100,14 @@ sudo show-busy-java-threads
 
 show-busy-java-threads -s <指定jstack命令的全路径>
 # 对于sudo方式的运行，JAVA_HOME环境变量不能传递给root，
-# 而root用户往往没有配置JAVA_HOME且不方便配置，
-# 显式指定jstack命令的路径就反而显得更方便了
+# 而root用户往往没有配置JAVA_HOME且不方便配置，不能找到jstack命令。
+# 这时显式指定jstack命令的路径就反而显得更方便了
 
-# -m选项：执行jstack命令时加上-m选项，显示上Native的栈帧，一般应用排查不需要使用
+# -m 选项：执行jstack命令时加上 -m 选项，显示上Native的栈帧，一般应用排查不需要使用
 show-busy-java-threads -m
-# -F选项：执行jstack命令时加上 -F 选项（如果直接jstack无响应时，用于强制jstack），一般情况不需要使用
+# -F 选项：执行jstack命令时加上 -F 选项（如果直接jstack无响应时，用于强制jstack），一般情况不需要使用
 show-busy-java-threads -F
-# -l选项：执行jstack命令时加上 -l 选项，显示上更多相关锁的信息，一般情况不需要使用
+# -l 选项：执行jstack命令时加上 -l 选项，显示上更多相关锁的信息，一般情况不需要使用
 # 注意：和 -m -F 选项一起使用时，可能会大大增加jstack操作的耗时
 show-busy-java-threads -l
 
@@ -120,10 +123,12 @@ Example:
   show-busy-java-threads 3 10  # update every 3 seconds, update 10 times
 
 Output control:
-  -p, --pid <java pid>      find out the highest cpu consumed threads from
+  -p, --pid <java pid(s)>   find out the highest cpu consumed threads from
                             the specified java process.
+                            support pid list(eg: 42,47).
                             default from all java process.
   -c, --count <num>         set the thread count to show, default is 5.
+                            set count 0 to show all threads.
   -a, --append-file <file>  specifies the file to append output as log.
   -S, --store-dir <dir>     specifies the directory for storing
                             the intermediate files, and keep files.
@@ -137,27 +142,23 @@ Output control:
 
 jstack control:
   -s, --jstack-path <path>  specifies the path of jstack command.
-  -F, --force               set jstack to force a thread dump. use when jstack
-                            does not respond (process is hung).
-  -m, --mix-native-frames   set jstack to print both java and native frames
-                            (mixed mode).
+  -F, --force               set jstack to force a thread dump.
+                            use when jstack does not respond (process is hung).
+  -m, --mix-native-frames   set jstack to print both java and
+                            native frames (mixed mode).
   -l, --lock-info           set jstack with long listing.
                             prints additional information about locks.
 
 CPU usage calculation control:
-  -d, --top-delay           specifies the delay between top samples.
-                            default is 0.5 (second). get thread cpu percentage
-                            during this delay interval.
-                            more info see top -d option. eg: -d 1 (1 second).
-  -P, --use-ps              use ps command to find busy thread(cpu usage)
-                            instead of top command.
-                            default use top command, because cpu usage of
-                            ps command is expressed as the percentage of
-                            time spent running during the *entire lifetime*
-                            of a process, this is not ideal in general.
+  -i, --cpu-sample-interval specifies the delay between cpu samples to get
+                            thread cpu usage percentage during this interval.
+                            default is 0.5 (second).
+                            set interval 0 to get the percentage of time spent
+                            running during the *entire lifetime* of a process.
 
 Miscellaneous:
   -h, --help                display this help and exit.
+  -V, --version             display version information and exit.
 ```
 
 ### 示例
@@ -209,7 +210,7 @@ $ show-busy-java-threads
 
 ### 贡献者
 
-- [silentforce](https://github.com/silentforce)改进此脚本，增加对环境变量`JAVA_HOME`的判断。 [#15](https://github.com/oldratlee/useful-scripts/pull/15)
+- [silentforce](https://github.com/silentforce) 改进此脚本，增加对环境变量`JAVA_HOME`的判断。 [#15](https://github.com/oldratlee/useful-scripts/pull/15)
 - [liuyangc3](https://github.com/liuyangc3)
     - 发现并解决`jstack`非当前用户`Java`进程的问题。 [#50](https://github.com/oldratlee/useful-scripts/pull/50)
     - 优化性能，通过`read -a`简化反复的`awk`操作。 [#51](https://github.com/oldratlee/useful-scripts/pull/51)
@@ -226,15 +227,20 @@ $ show-busy-java-threads
 ----------------------
 
 找出`Java Lib`（`Java`库，即`Jar`文件）或`Class`目录（类目录）中的重复类。  
-全系统支持（`Python`实现，安装`Python`即可），如`Linux`、`Mac`、`Windows`。
+全系统支持（`Python 3`实现，安装`Python 3`即可），如`Linux`、`Mac`、`Windows`。
 
 `Java`开发的一个麻烦的问题是`Jar`冲突（即多个版本的`Jar`），或者说重复类。会出`NoSuchMethod`等的问题，还不见得当时出问题。找出有重复类的`Jar`，可以防患未然。
 
 ### 用法
 
-- 通过脚本参数指定`Libs`目录，查找目录下`Jar`文件，收集`Jar`文件中`Class`文件以分析重复类。可以指定多个`Libs`目录。  
-    注意，只会查找这个目录下`Jar`文件，不会查找子目录下`Jar`文件。因为`Libs`目录一般不会用子目录再放`Jar`，这样也避免把去查找不期望`Jar`。
-- 通过`-c`选项指定`Class`目录，直接收集这个目录下的`Class`文件以分析重复类。可以指定多个`Class`目录。
+- 通过脚本参数 指定 `Libs`目录，查找目录下`Jar`文件，收集`Jar`文件中`Class`文件以分析重复类。可以指定多个`Libs`目录。
+    - 缺省只会查找指定`Lib`目录下`Jar`文件，不会收集`Lib`目录的子目录下`Jar`文件。
+        - 因为`Libs`目录一般不会用子目录再放`Jar`，也避免把去查找不期望的`Jar`文件。
+        - 可以通过 `-L`选项 设置 收集`Lib`子目录下的`Jar`文件；这样可以简化`Lib`目录的设置，不需要指定完整的`Lib`目录路径。
+    - 对于找到的`Jar`文件，缺省不会进一步收集包含在`Jar`文件中的`Jar`。
+        - 即`FatJar`/`UberJar`的场景，随着像`SpringBoot`的广泛使用，`FatJar`/`UberJar`也比较常见。
+        - 可以通过 `-J`选项 设置 收集包含在`Jar`文件中的`Jar`。
+- 通过`-c`选项 指定 `Class`目录，直接收集这个目录下的`Class`文件以分析重复类。可以多次指定多个`Class`目录。
 
 ```bash
 # 查找当前目录下所有Jar中的重复类
@@ -242,6 +248,10 @@ show-duplicate-java-classes
 
 # 查找多个指定目录下所有Jar中的重复类
 show-duplicate-java-classes path/to/lib_dir1 /path/to/lib_dir2
+# 通过 -L 选项，收集子目录中的Jar文件
+show-duplicate-java-classes -L path/to/lib_dir1
+# 通过 -J 选项，收集包含在Jar文件中的Jar文件（即 收集包含在FatJar/UberJar中的Jar）
+show-duplicate-java-classes -J path/to/lib_dir1
 
 # 查找多个指定Class目录下的重复类。 Class目录 通过 -c 选项指定
 show-duplicate-java-classes -c path/to/class_dir1 -c /path/to/class_dir2
@@ -251,12 +261,26 @@ show-duplicate-java-classes path/to/lib_dir1 /path/to/lib_dir2 -c path/to/class_
 
 # 帮助信息
 $ show-duplicate-java-classes -h
-Usage: show-duplicate-java-classes [-c class-dir1 [-c class-dir2] ...] [lib-dir1|jar-file1 [lib-dir2|jar-file2] ...]
+Usage: show-duplicate-java-classes [OPTION]... [-c class-dir1 [-c class-dir2] ...] [lib-dir1|jar-file1 [lib-dir2|jar-file2] ...]
+Find duplicate classes among java lib dirs and class dirs.
+
+Examples:
+  show-duplicate-java-classes  # search jars from current dir
+  show-duplicate-java-classes path/to/lib_dir1 /path/to/lib_dir2
+  show-duplicate-java-classes -c path/to/class_dir1 -c /path/to/class_dir2
+  show-duplicate-java-classes -c path/to/class_dir1 path/to/lib_dir1
+  show-duplicate-java-classes -L path/to/lib_dir1
+  show-duplicate-java-classes -J path/to/lib_dir1
 
 Options:
+  --version             show program's version number and exit
   -h, --help            show this help message and exit
+  -L, --recursive-lib   search jars in the sub-directories of lib dir
+  -J, --recursive-jar   search jars in the jar file
   -c CLASS_DIRS, --class-dir=CLASS_DIRS
                         add class dir
+  -R, --no-find-progress
+                        do not display responsive find progress
 ```
 
 #### `JDK`开发场景使用说明
@@ -300,7 +324,7 @@ $ show-duplicate-java-classes -c target/war/WEB-INF/classes target/war/WEB-INF/l
 
 在`App`的`build.gradle`中添加拷贝库到目录`build/dependencies`下。
 
-```java
+```groovy
 task copyDependencies(type: Copy) {
     def dest = new File(buildDir, "dependencies")
 
@@ -329,58 +353,65 @@ $ show-duplicate-java-classes WEB-INF/lib
 COOL! No duplicate classes found!
 
 ================================================================================
-class paths to find:
+Find in 150 class paths:
 ================================================================================
-1  : WEB-INF/lib/sourceforge.spring.modules.context-2.5.6.SEC02.jar
-2  : WEB-INF/lib/misc.htmlparser-0.0.0.jar
-3  : WEB-INF/lib/normandy.client-1.0.2.jar
+  1: (contain   9 classes) WEB-INF/lib/aopalliance-1.0.jar
+  2: (contain  25 classes) WEB-INF/lib/asm-5.0.4.jar
+  3: (contain 313 classes) WEB-INF/lib/aviator-5.0.0.jar
+  4: (contain 687 classes) WEB-INF/lib/cassandra-0.6.1.jar
 ...
 
 $ show-duplicate-java-classes -c WEB-INF/classes WEB-INF/lib
-Found duplicate classes in below class path:
-1  (293@2): WEB-INF/lib/sourceforge.spring-2.5.6.SEC02.jar WEB-INF/lib/sourceforge.spring.modules.orm-2.5.6.SEC02.jar
-2  (2@3): WEB-INF/lib/servlet-api-3.0-alpha-1.jar WEB-INF/lib/jsp-api-2.1-rev-1.jar WEB-INF/lib/jstl-api-1.2-rev-1.jar
-3  (104@2): WEB-INF/lib/commons-io-2.2.jar WEB-INF/lib/jakarta.commons.io-2.0.jar
-4  (6@3): WEB-INF/lib/jakarta.commons.logging-1.1.jar WEB-INF/lib/commons-logging-1.1.1.jar WEB-INF/lib/org.slf4j.jcl104-over-slf4j-1.5.6.jar
-5  (344@2): WEB-INF/lib/sourceforge.spring-2.5.6.SEC02.jar WEB-INF/lib/sourceforge.spring.modules.context-2.5.6.SEC02.jar
+Found 1272 duplicate classes in 345 class paths and 9 class path sets:
+[1] found 188(100%) duplicate classes in 3 class paths:
+    1: (contain 188 classes) WEB-INF/lib/jdom-2.0.2.jar
+    2: (contain 195 classes) WEB-INF/lib/jdom2-2.0.6.jar
+    3: (contain 195 classes) WEB-INF/lib/jdom2-2.0.8.jar
+[2] found 150(33.8%) duplicate classes in 2 class paths:
+    1: (contain 1385 classes) WEB-INF/lib/netty-all-4.0.35.Final.jar
+    2: (contain  444 classes) WEB-INF/lib/netty-common-4.1.31.Final.jar
+[3] found 148(55.4%) duplicate classes in 2 class paths:
+    1: (contain 1385 classes) WEB-INF/lib/netty-all-4.0.35.Final.jar
+    2: (contain  267 classes) WEB-INF/lib/netty-handler-4.1.31.Final.jar
+[4] found 103(82.4%) duplicate classes in 2 class paths:
+    1: (contain 125 classes) WEB-INF/lib/hessian-3.0.14.bugfix.jar
+    2: (contain 275 classes) WEB-INF/lib/hessian-4.0.38.jar
 ...
 
 ================================================================================
 Duplicate classes detail info:
 ================================================================================
-1  (293@2): WEB-INF/lib/sourceforge.spring-2.5.6.SEC02.jar WEB-INF/lib/sourceforge.spring.modules.orm-2.5.6.SEC02.jar
-    1   org/springframework/orm/toplink/TopLinkTemplate$13.class
-    2   org/springframework/orm/hibernate3/HibernateTemplate$24.class
-    3   org/springframework/orm/jpa/vendor/HibernateJpaDialect.class
-    4   org/springframework/orm/hibernate3/TypeDefinitionBean.class
-    5   org/springframework/orm/hibernate3/SessionHolder.class
-    ...
-2  (2@3): WEB-INF/lib/servlet-api-3.0-alpha-1.jar WEB-INF/lib/jsp-api-2.1-rev-1.jar WEB-INF/lib/jstl-api-1.2-rev-1.jar
-    1   javax/servlet/ServletException.class
-    2   javax/servlet/ServletContext.class
-3  (104@2): WEB-INF/lib/commons-io-2.2.jar WEB-INF/lib/jakarta.commons.io-2.0.jar
-    1   org/apache/commons/io/input/ProxyReader.class
-    2   org/apache/commons/io/output/FileWriterWithEncoding.class
-    3   org/apache/commons/io/output/TaggedOutputStream.class
-    4   org/apache/commons/io/filefilter/NotFileFilter.class
-    5   org/apache/commons/io/filefilter/TrueFileFilter.class
-    ...
+[1] found 188 duplicate classes in 3 class paths WEB-INF/lib/jdom-2.0.2.jar WEB-INF/lib/jdom2-2.0.6.jar WEB-INF/lib/jdom2-2.0.8.jar :
+      1: org/jdom2/Attribute.class
+      2: org/jdom2/AttributeList$1.class
+      3: org/jdom2/AttributeList$ALIterator.class
+      4: org/jdom2/AttributeList.class
+      5: org/jdom2/AttributeType.class
+      ...
+[2] found 150 duplicate classes in 2 class paths WEB-INF/lib/netty-all-4.0.35.Final.jar WEB-INF/lib/netty-common-4.1.31.Final.jar :
+      1: io/netty/util/AbstractReferenceCounted.class
+      2: io/netty/util/Attribute.class
+      3: io/netty/util/AttributeKey.class
+      4: io/netty/util/AttributeMap.class
+      5: io/netty/util/CharsetUtil.class
+      ...
 ...
 
 ================================================================================
-class paths to find:
+Find in 232 class paths:
 ================================================================================
-1  : WEB-INF/lib/sourceforge.spring.modules.context-2.5.6.SEC02.jar
-2  : WEB-INF/lib/misc.htmlparser-0.0.0.jar
-3  : WEB-INF/lib/normandy.client-1.0.2.jar
-4  : WEB-INF/lib/xml.xmlgraphics__batik-css-1.7.jar-1.7.jar
-5  : WEB-INF/lib/jakarta.ecs-1.4.2.jar
+  1: (contain  42 classes) WEB-INF/classes
+  2: (contain  70 classes) WEB-INF/lib/HikariCP-2.7.8.jar
+  3: (contain  13 classes) WEB-INF/lib/accessors-smart-1.2.jar
+  4: (contain   9 classes) WEB-INF/lib/aopalliance-1.0.jar
+  5: (contain  25 classes) WEB-INF/lib/asm-5.0.4.jar
+  6: (contain 313 classes) WEB-INF/lib/aviator-5.0.0.jar
 ...
 ```
 
 ### 贡献者
 
-[tgic](https://github.com/tg123)提供此脚本。友情贡献者的链接 [commandlinefu.cn](http://commandlinefu.cn/) | [微博linux命令行精选](http://weibo.com/u/2674868673)
+[tgic](https://github.com/tg123) 提供此脚本。友情贡献者的链接 [commandlinefu.cn](http://commandlinefu.cn/) | [微博linux命令行精选](http://weibo.com/u/2674868673)
 
 <a id="beer-find-in-jarssh"></a>
 <a id="beer-find-in-jars"></a>
@@ -419,9 +450,14 @@ find-in-jars 'log4j\.properties' -a
 find-in-jars 'log4j\.properties' -s ' <-> '
 find-in-jars 'log4j\.properties' -s ' ' | awk '{print $2}'
 
+# -l选项 指定 只列出Jar文件，不显示Jar文件内匹配的文件列表
+# 列出 包含log4j.xml文件的Jar文件：
+find-in-jars -l 'log4j\.xml$'
+
 # 帮助信息
 $ find-in-jars -h
 Usage: find-in-jars [OPTION]... PATTERN
+
 Find files in the jar files under specified directory,
 search jar files recursively(include subdirectory).
 The pattern default is *extended* regex.
@@ -451,9 +487,15 @@ Output control:
   -a, --absolute-path    always print absolute path of jar file
   -s, --separator        specify the separator between jar file and zip entry.
                          default is `!'.
+  -L, --files-not-contained-found
+                         print only names of JAR FILEs NOT contained found
+  -l, --files-contained-found
+                         print only names of JAR FILEs contained found
+  -R, --no-find-progress do not display responsive find progress
 
 Miscellaneous:
   -h, --help             display this help and exit
+  -V, --version          display version information and exit
 ```
 
 注意，Pattern缺省是`grep`的 **扩展**正则表达式。
@@ -464,6 +506,7 @@ Miscellaneous:
 # 在当前目录下的所有Jar文件中，查找出 log4j.properties文件
 $ find-in-jars 'log4j\.properties$'
 ./hadoop-core-0.20.2-cdh3u3.jar!log4j.properties
+......
 
 # 查找出 以Service结尾的类，Jar文件路径输出成绝对路径
 $ find-in-jars 'Service.class$' -a
@@ -479,6 +522,13 @@ WEB-INF/lib/aspectjweaver-1.8.8.jar!org/aspectj/weaver/XlintDefault.properties
 ../deploy/lib/httpcore-4.3.3.jar!org/apache/http/version.properties
 ../deploy/lib/javax.servlet-api-3.0.1.jar!javax/servlet/http/LocalStrings_es.properties
 ......
+
+# 列出 包含properties文件的Jar文件
+$ find-in-jars '\.properties$' -l -d WEB-INF/lib
+WEB-INF/lib/aspectjtools-1.6.2.jar
+WEB-INF/lib/aspectjweaver-1.8.8.jar
+WEB-INF/lib/javax.servlet-api-3.0.1.jar
+......
 ```
 
 ### 运行效果
@@ -489,4 +539,4 @@ WEB-INF/lib/aspectjweaver-1.8.8.jar!org/aspectj/weaver/XlintDefault.properties
 
 ### 参考资料
 
-[在多个Jar(Zip)文件查找Log4J配置文件的Shell命令行](http://oldratlee.com/458/tech/shell/find-file-in-jar-zip-files.html)
+[在多个Jar(Zip)文件查找Log4J配置文件的Shell命令行](http://oldratlee.github.io/458/tech/shell/find-file-in-jar-zip-files.html)
