@@ -11,16 +11,23 @@
 #
 # NOTE about Bash Traps and Pitfalls:
 #
-# 1. DO NOT combine var declaration and assignment which value supplied by subshell!
+# 1. DO NOT combine var declaration and assignment which value supplied by subshell in ONE line!
 #    for example: readonly var1=$(echo value1)
-#                 local var1=$(echo value1)
+#                 local var2=$(echo value1)
 #
-#    declaration make exit code of assignment to be always 0,
+#    Because the combination make exit code of assignment to be always 0,
 #      aka. the exit code of command in subshell is discarded.
 #      tested on bash 3.2.57/4.2.46
+#
+#    solution is separation of var declaration and assignment:
+#           var1=$(echo value1)
+#           readonly var1
+#           local var2
+#           var2=$(echo value1)
 
-# NOTE: DO NOT declare var PROG as readonly, because its value is supplied by subshell.
+# NOTE: DO NOT declare var PROG as readonly in ONE line!
 PROG="$(basename "$0")"
+readonly PROG
 readonly PROG_VERSION='2.5.0-dev'
 # choosing between $0 and BASH_SOURCE
 # https://stackoverflow.com/a/35006505/922688
@@ -33,8 +40,9 @@ readonly -a COMMAND_LINE=("${BASH_SOURCE[0]}" "$@")
 #   See https://www.lifewire.com/current-linux-user-whoami-command-3867579
 # Because if run command by `sudo -u`, env var $USER is not rewritten/correct, just inherited from outside!
 #
-# NOTE: DO NOT declare var USER as readonly, because its value is supplied by subshell.
+# NOTE: DO NOT declare var USER as readonly in ONE line!
 USER="$(whoami)"
+readonly USER
 
 ################################################################################
 # util functions
@@ -208,9 +216,7 @@ uname | grep '^Linux' -q || die "$PROG only support Linux, not support $(uname) 
 # parse options
 ################################################################################
 
-# NOTE: ARGS can not be declared as readonly!!
-# readonly declaration make exit code of assignment to be always 0, aka. the exit code of `getopt` in subshell is discarded.
-#   tested on bash 4.2.46
+# DO NOT declare var ARGS as readonly in ONE line!
 ARGS=$(
     getopt -n "$PROG" -a -o c:p:a:s:S:i:Pd:FmlhV \
         -l count:,pid:,append-file:,jstack-path:,store-dir:,cpu-sample-interval:,use-ps,top-delay:,force,mix-native-frames,lock-info,help,version \
@@ -219,6 +225,7 @@ ARGS=$(
     echo
     usage 1
 }
+readonly ARGS
 eval set -- "${ARGS}"
 
 count=5
@@ -265,7 +272,7 @@ while true; do
         shift
         ;;
     -l | --lock-info)
-        more_lock_info=-l
+        lock_info=-l
         shift
         ;;
     -h | --help)
@@ -281,16 +288,19 @@ while true; do
     esac
 done
 
-update_delay=${1:-0}
+readonly count cpu_sample_interval force mix_native_frames lock_info
+readonly update_delay=${1:-0}
 isNonNegativeFloatNumber "$update_delay" || die "update delay($update_delay) is not a non-negative float number!"
 
 [ -z "$1" ] && update_count=1 || update_count=${2:-0}
 isNaturalNumber "$update_count" || die "update count($update_count) is not a natural number!"
+readonly update_count
 
 if [ -n "$pid_list" ]; then
     pid_list="${pid_list//[[:space:]]/}" # delete white space
     isNaturalNumberList "$pid_list" || die "pid(s)($pid_list) is illegal! example: 42 or 42,99,67"
 fi
+readonly pid_list
 
 # check the directory of append-file(-a) mode, create if not exist.
 if [ -n "$append_file" ]; then
@@ -307,6 +317,7 @@ if [ -n "$append_file" ]; then
         fi
     fi
 fi
+readonly append_file
 
 # check store directory(-S) mode, create directory if not exist.
 if [ -n "$store_dir" ]; then
@@ -317,6 +328,7 @@ if [ -n "$store_dir" ]; then
         mkdir -p "$store_dir" || die "fail to create directory $store_dir(specified by option -S, for storing output files)!"
     fi
 fi
+readonly store_dir
 
 isNonNegativeFloatNumber "$cpu_sample_interval" || die "cpu sample interval($cpu_sample_interval) is not a non-negative float number!"
 
@@ -349,13 +361,15 @@ elif command -v jstack &>/dev/null; then
 else
     die "jstack NOT found by JAVA_HOME(${JAVA_HOME:-not set}) setting and PATH!${nl}Use -s option set jstack path manually."
 fi
+readonly jstack_path
 
 ################################################################################
 # biz logic
 ################################################################################
 
-# NOTE: DO NOT declare var run_timestamp as readonly, because its value is supplied by subshell.
+# NOTE: DO NOT declare var run_timestamp as readonly in ONE line!
 run_timestamp="$(date "+%Y-%m-%d_%H:%M:%S.%N")"
+readonly run_timestamp
 readonly uuid="${PROG}_${run_timestamp}_${$}_${RANDOM}"
 
 readonly tmp_store_dir="/tmp/${uuid}"
@@ -414,7 +428,7 @@ findBusyJavaThreadsByPs() {
 
     # shellcheck disable=SC2206
     local -a ps_cmd_line=(ps $ps_process_select_options -wwLo 'pid,lwp,pcpu,user' --no-headers)
-    # DO NOT combine var ps_out declaration and assignment, because its value is supplied by subshell.
+    # DO NOT combine var ps_out declaration and assignment in ONE line!
     local ps_out
     ps_out="$("${ps_cmd_line[@]}" | sort -k3,3nr)"
     [ -n "$ps_out" ] || __die_when_no_java_process_found
@@ -432,7 +446,7 @@ findBusyJavaThreadsByPs() {
 
 # top with output field: thread id, %cpu
 __top_threadId_cpu() {
-    # DO NOT combine var java_pid_list declaration and assignment, because its value is supplied by subshell.
+    # DO NOT combine var java_pid_list declaration and assignment in ONE line!
     local java_pid_list
     # shellcheck disable=SC2086
     java_pid_list="$(ps $ps_process_select_options -o pid --no-headers)"
@@ -455,14 +469,14 @@ __top_threadId_cpu() {
     # 4. top v3.3, there is 1 black line between 2 update;
     #    but top v3.2, there is 2 blank lines between 2 update!
     local -a top_cmd_line=(top -H -b -d "$cpu_sample_interval" -n 2 -p "$java_pid_list")
-    # DO NOT combine var ps_out declaration and assignment, because its value is supplied by subshell.
+    # DO NOT combine var ps_out declaration and assignment in ONE line!
     local top_out
     top_out=$(HOME="$tmp_store_dir" "${top_cmd_line[@]}")
     if [ -n "$store_dir" ]; then
         echo "$top_out" | logAndCat "${top_cmd_line[@]}" >"${store_file_prefix}$((update_round_num + 1))_top"
     fi
 
-    # DO NOT combine var result_threads_top_info declaration and assignment, because its value is supplied by subshell.
+    # DO NOT combine var result_threads_top_info declaration and assignment in ONE line!
     local result_threads_top_info
     result_threads_top_info=$(
         echo "$top_out" | awk '{
@@ -483,7 +497,7 @@ __complete_pid_user_by_ps() {
     # ps output field: pid, thread id(lwp), user
     # shellcheck disable=SC2206
     local -a ps_cmd_line=(ps $ps_process_select_options -wwLo 'pid,lwp,user' --no-headers)
-    # DO NOT combine var ps_out declaration and assignment, because its value is supplied by subshell.
+    # DO NOT combine var ps_out declaration and assignment in ONE line!
     local ps_out
     ps_out="$("${ps_cmd_line[@]}")"
     if [ -n "$store_dir" ]; then
@@ -520,7 +534,7 @@ printStackOfThreads() {
         local jstackFile="${store_file_prefix}$((update_round_num + 1))_jstack_${pid}"
         [ -f "${jstackFile}" ] || {
             # shellcheck disable=SC2206
-            local -a jstack_cmd_line=("$jstack_path" ${force} $mix_native_frames $more_lock_info ${pid})
+            local -a jstack_cmd_line=("$jstack_path" ${force} $mix_native_frames $lock_info ${pid})
             if [ "${user}" == "${USER}" ]; then
                 # run without sudo, when java process user is current user
                 logAndRun "${jstack_cmd_line[@]}" >"${jstackFile}"

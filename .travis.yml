@@ -17,18 +17,20 @@ addons:
 jobs:
   include:
     - os: osx
-      osx_image: xcode11.3
+      osx_image: xcode12.5
     - os: linux
       dist: precise
     - os: linux
-      dist: trusty
-    - os: linux
       dist: xenial
-    - os: linux
-      dist: bionic
     - os: linux
       dist: focal
 
+env:
+  # Is it possible to `brew install` without updating? · Issue #1670 · Homebrew/brew
+  #   https://github.com/Homebrew/brew/issues/1670
+  # python - How to not update homebrew automatically when brew install some packages? - Stack Overflow
+  #   https://stackoverflow.com/questions/41530314
+  - HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_AUTO_UPDATING=0 HOMEBREW_UPDATE_PREINSTALL=0 HOMEBREW_NO_ANALYTICS=1
 script:
   - test-cases/integration-test.sh
 
