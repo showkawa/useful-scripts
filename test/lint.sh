@@ -8,7 +8,7 @@ realpath() {
 # cd to the root of the project
 cd "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"/..
 
-find bin lib legacy-bin -type f |
+find bin lib -type f |
   grep -Pv '/show-duplicate-java-classes$' |
   grep -Pv '/\.editorconfig$' |
   xargs --verbose shellcheck --shell=bash

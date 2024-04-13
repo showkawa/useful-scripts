@@ -69,6 +69,6 @@ cd -P -- "$(dirname -- "$0")"/..
 
 # Bash Pitfalls#1
 #  http://mywiki.wooledge.org/BashPitfalls#for_f_in_.24.28ls_.2A.mp3.29
-logAndRun find -D exec bin legacy-bin lib -type f -exec \
+logAndRun find -D exec bin lib -type f -exec \
   sed -ri "s/^(.*\bPROG_VERSION\s*=\s*')\S*('.*)$/\1$bump_version\2/" -- \
   {} +

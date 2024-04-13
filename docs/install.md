@@ -25,17 +25,6 @@ git pull
 - `dev-3.x`：开发分支
 - `release-3.x`：发布分支，功能稳定的脚本
 
-当然如果你不想安装`git`，`github`是支持`svn`的：
-
-```bash
-svn co https://github.com/oldratlee/useful-scripts/branches/release-3.x
-
-cd useful-scripts
-
-# 更新脚本
-svn up
-```
-
 PS：  
 我的做法是把`useful-scripts` checkout到`$HOME/bin`目录下，再把`$HOME/bin/useful-scripts/bin`配置到`PATH`变量上，这样方便我本地使用所有的脚本。
 
