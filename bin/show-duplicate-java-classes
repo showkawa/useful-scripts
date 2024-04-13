@@ -11,7 +11,7 @@
 #   $ show-duplicate-java-classes -L path/to/lib_dir1 # search jars in the subdirectories of lib dir
 #   $ show-duplicate-java-classes -J path/to/lib_dir1 # search jars in the jar file
 #
-# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-2.x/docs/java.md#-show-duplicate-java-classes
+# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/java.md#-show-duplicate-java-classes
 # @author tg123 (farmer1992 at gmail dot com)
 # @author Jerry Lee (oldratlee at gmail dot com)
 

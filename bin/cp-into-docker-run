@@ -5,7 +5,7 @@
 # Example:
 #  cp-into-docker-run -c container_foo command_copied_into_container command_arg1
 #
-# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-2.x/docs/shell.md#-cp-into-docker-run
+# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/shell.md#-cp-into-docker-run
 # @author Jerry Lee (oldratlee at gmail dot com)
 set -eEuo pipefail
 

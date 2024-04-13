@@ -7,7 +7,7 @@
 # @Usage
 #   uq [OPTION]... [INPUT [OUTPUT]]
 #
-# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-2.x/docs/shell.md#-uq
+# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/shell.md#-uq
 # @author Zava Xu (zava.kid at gmail dot com)
 # @author Jerry Lee (oldratlee at gmail dot com)
 set -eEuo pipefail

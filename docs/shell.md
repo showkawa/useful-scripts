@@ -198,8 +198,8 @@ B.java
 # 把参数按行输出方便查看 或是 grep
 $ a2l **/*.sh
 lib/console-text-color-themes.sh
-test-cases/parseOpts_test.sh
-test-cases/self-installer.sh
+test/parseOpts_test.sh
+test/self-installer.sh
 ...
 ```
 

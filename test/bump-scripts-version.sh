@@ -58,7 +58,7 @@ die() {
 # biz logic
 ################################################################################
 
-(($# != 1)) && die "need only 1 argument for version!$NL${NL}usage:$NL  $0 2.x.y"
+(($# != 1)) && die "need only 1 argument for version!$NL${NL}usage:$NL  $0 3.x.y"
 readonly bump_version=$1
 
 # adjust current dir to project dir

@@ -1,7 +1,7 @@
 # <div align="center"><a href="#dummy"><img src="https://github.com/oldratlee/useful-scripts/assets/1063891/990d7ab3-1a84-4024-b1c6-4c8d441dcfc6" alt="🐌 useful-scripts"></a></div>
 
 <p align="center">
-<a href="https://github.com/oldratlee/useful-scripts/actions/workflows/ci.yaml"><img src="https://img.shields.io/github/actions/workflow/status/oldratlee/useful-scripts/ci.yaml?branch=dev-2.x&logo=github&logoColor=white" alt="Github Workflow Build Status"></a>
+<a href="https://github.com/oldratlee/useful-scripts/actions/workflows/ci.yaml"><img src="https://img.shields.io/github/actions/workflow/status/oldratlee/useful-scripts/ci.yaml?branch=dev-3.x&logo=github&logoColor=white" alt="Github Workflow Build Status"></a>
 <a href="https://github.com/oldratlee/useful-scripts/releases"><img src="https://img.shields.io/github/release/oldratlee/useful-scripts.svg" alt="GitHub release"></a>
 <a href="https://www.apache.org/licenses/LICENSE-2.0.html"><img src="https://img.shields.io/github/license/oldratlee/useful-scripts?color=4D7A97&logo=apache" alt="License"></a>
 <a href="https://github.com/oldratlee/useful-scripts/stargazers"><img src="https://img.shields.io/github/stars/oldratlee/useful-scripts?style=flat" alt="GitHub Stars"></a>
@@ -52,7 +52,7 @@
 ----------------------
 
 ```bash
-source <(curl -fsSL https://raw.githubusercontent.com/oldratlee/useful-scripts/release-2.x/test-cases/self-installer.sh)
+source <(curl -fsSL https://raw.githubusercontent.com/oldratlee/useful-scripts/release-3.x/test/self-installer.sh)
 ```
 
 更多下载&使用方式，参见[下载使用](docs/install.md)。
