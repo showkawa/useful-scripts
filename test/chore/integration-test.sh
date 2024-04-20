@@ -5,7 +5,7 @@ realpath() {
   [ -e "$1" ] && command realpath -- "$1"
 }
 
-cd "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+cd "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"/..
 
 ################################################################################
 # common util functions

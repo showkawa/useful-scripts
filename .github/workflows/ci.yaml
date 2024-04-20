@@ -24,7 +24,7 @@ jobs:
         # https://docs.github.com/en/actions/learn-github-actions/variables#detecting-the-operating-system
         # https://docs.github.com/en/actions/learn-github-actions/expressions
         if: runner.os == 'macOS'
-      - run: test/integration-test.sh
+      - run: test/chore/integration-test.sh
       # https://remarkablemark.org/blog/2017/10/12/check-git-dirty/
       - name: Check git dirty
         run: |

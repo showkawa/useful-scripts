@@ -6,7 +6,7 @@ realpath() {
 }
 
 # cd to the root of the project
-cd "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"/..
+cd "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"/../..
 
 find bin lib -type f |
   grep -Pv '/show-duplicate-java-classes$' |
