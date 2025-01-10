@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @Function
 # convert to Absolute Path.
 #
@@ -8,130 +8,128 @@
 #   # print Absolute Path of arguments.
 #   $ ./ap a.txt ../dir1/b.txt
 #
-# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-2.x/docs/shell.md#-ap-and-rp
+# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/shell.md#-ap-and-rp
 # @author Jerry Lee (oldratlee at gmail dot com)
 set -eEuo pipefail
 
-# NOTE: DO NOT declare var PROG as readonly in ONE line!
-PROG="$(basename "$0")"
-readonly PROG
-readonly PROG_VERSION='2.5.0-dev'
+readonly PROG=${0##*/}
+readonly PROG_VERSION='3.x-dev'
 
 ################################################################################
 # util functions
 ################################################################################
 
-# NOTE: $'foo' is the escape sequence syntax of bash
-readonly ec=$'\033'      # escape char
-readonly eend=$'\033[0m' # escape end
-readonly nl=$'\n'        # new line
-
-colorEcho() {
-    local color="$1"
-    shift
-    # check isatty in bash https://stackoverflow.com/questions/10022323
-    # if stdout is console, turn on color output.
-    [ -t 1 ] && echo "${ec}[1;${color}m$*${eend}" || echo "$*"
-}
-
-redEcho() {
-    colorEcho 31 "$@"
-}
+errorMsgPrint() {
+  local errorMsg="$PROG: $*"
+  # if stdout is a terminal, turn on color output.
+  #   '-t' check: is a terminal?
+  #   check isatty in bash https://stackoverflow.com/questions/10022323
+  if [ -t 1 ]; then
+    printf '\e[1;31m%s\e[0m\n' "$errorMsg"
+  else
+    printf '%s\n' "$errorMsg"
+  fi
+} >&2
 
 die() {
-    redEcho "Error: $*" 1>&2
-    exit 1
-}
-
-# How can I get the behavior of GNU's readlink -f on a Mac?
-# https://stackoverflow.com/questions/1055671
-portableReadLink() {
-    local file="$1" uname
-
-    uname="$(uname)"
-    case "$uname" in
-    Linux* | CYGWIN* | MINGW*)
-        readlink -f "$file"
-        ;;
-    Darwin*)
-        if command -v greadlink >/dev/null; then
-            greadlink -f "$file"
-        else
-            python -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$file"
-        fi
-        ;;
+  local prompt_help=false exit_status=2
+  while (($# > 0)); do
+    case "$1" in
+    -h)
+      prompt_help=true
+      shift
+      ;;
+    -s)
+      exit_status=$2
+      shift 2
+      ;;
     *)
-        die "NOT support uname($uname)!"
-        ;;
+      break
+      ;;
     esac
+  done
+
+  (($# > 0)) && errorMsgPrint "$*"
+  $prompt_help && echo "Try '$PROG --help' for more information."
+
+  exit "$exit_status"
+} >&2
+
+# `realpath` command exists on Linux and macOS, return resolved physical path
+#   - realpath command on macOS do NOT support option `-e`;
+#     combined `[ -e $file ]` to check file existence first.
+#   - How can I get the behavior of GNU's readlink -f on a Mac?
+#     https://stackoverflow.com/questions/1055671
+realpath() {
+  [ -e "$1" ] && command realpath -- "$1"
 }
 
 usage() {
-    local -r exit_code="${1:-0}"
-    (($# > 0)) && shift
-    # shellcheck disable=SC2015
-    [ "$exit_code" != 0 ] && local -r out=/dev/stderr || local -r out=/dev/stdout
-
-    (($# > 0)) && redEcho "$*$nl" >$out
-
-    cat >$out <<EOF
-Usage: ${PROG} [OPTION]... ARG...
+  cat <<EOF
+Usage: $PROG [OPTION]... [FILE]...
 convert to Absolute Path.
 
 Example:
-  ${PROG} arg1 arg2
-  ${PROG} */*.py
+  $PROG arg1 arg2
+  $PROG */*.py
 
 Options:
   -h, --help      display this help and exit
   -V, --version   display version information and exit
 EOF
 
-    exit "$exit_code"
+  exit
 }
 
 progVersion() {
-    echo "$PROG $PROG_VERSION"
-    exit
+  printf '%s\n' "$PROG $PROG_VERSION"
+  exit
 }
 
 ################################################################################
 # parse options
 ################################################################################
 
-declare -a files=()
-while [ $# -gt 0 ]; do
-    case "$1" in
-    -h | --help)
-        usage
-        ;;
-    -V | --version)
-        progVersion
-        ;;
-    --)
-        shift
-        files=(${files[@]:+"${files[@]}"} "$@")
-        break
-        ;;
-    -*)
-        usage 2 "${PROG}: unrecognized option '$1'"
-        break
-        ;;
-    *)
-        # if not option, treat all follow files as args
-        files=(${files[@]:+"${files[@]}"} "$@")
-        break
-        ;;
-    esac
+files=()
+while (($# > 0)); do
+  case "$1" in
+  -h | --help)
+    usage
+    ;;
+  -V | --version)
+    progVersion
+    ;;
+  --)
+    shift
+    files=(${files[@]:+"${files[@]}"} "$@")
+    break
+    ;;
+  -*)
+    die -h "unrecognized option '$1'"
+    ;;
+  *)
+    # if not option, treat all follow files as args
+    files=(${files[@]:+"${files[@]}"} "$@")
+    break
+    ;;
+  esac
 done
 
-[ ${#files[@]} -eq 0 ] && files=(.)
-readonly files
+# if files is empty, use "."
+readonly files=("${files[@]:-.}")
+
+################################################################################
+# biz logic
+################################################################################
+
+has_error=false
 
 for f in "${files[@]}"; do
-    ! [ -e "$f" ] && {
-        echo "$f does not exists!"
-        continue
-    }
-    portableReadLink "$f"
+  realpath "$f" || {
+    has_error=true
+    errorMsgPrint "$f: No such file or directory!"
+  }
 done
+
+# set exit status
+! $has_error

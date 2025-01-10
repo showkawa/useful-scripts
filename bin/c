@@ -1,66 +1,68 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @Function
 # Run command and put output to system clipper.
 #
 # @Usage
-#   $ c echo 'hello world!'
-#   $ echo 'hello world!' | c
+#   $ c ls -l
+#   $ ls -l | c
+#   $ c -q < ~/.ssh/id_rsa.pub
 #
-# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-2.x/docs/shell.md#-c
+# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/shell.md#-c
 # @author Jerry Lee (oldratlee at gmail dot com)
-#
-# NOTE about Bash Traps and Pitfalls:
-#
-# 1. DO NOT combine var declaration and assignment which value supplied by subshell in ONE line!
-#    for example: readonly var1=$(echo value1)
-#                 local var2=$(echo value1)
-#
-#    Because the combination make exit code of assignment to be always 0,
-#      aka. the exit code of command in subshell is discarded.
-#      tested on bash 3.2.57/4.2.46
-#
-#    solution is separation of var declaration and assignment:
-#           var1=$(echo value1)
-#           readonly var1
-#           local var2
-#           var2=$(echo value1)
 set -eEuo pipefail
 
-# NOTE: DO NOT declare var PROG as readonly in ONE line!
-PROG="$(basename "$0")"
-readonly PROG
-readonly PROG_VERSION='2.5.0-dev'
+readonly PROG=${0##*/}
+readonly PROG_VERSION='3.x-dev'
 
 ################################################################################
 # util functions
 ################################################################################
 
-readonly ec=$'\033'      # escape char
-readonly eend=$'\033[0m' # escape end
-readonly nl=$'\n'        # new line
-
-redEcho() {
-    [ -t 1 ] && echo "${ec}[1;31m$*$eend" || echo "$*"
+redPrint() {
+  # if stdout is a terminal, turn on color output.
+  #   '-t' check: is a terminal?
+  #   check isatty in bash https://stackoverflow.com/questions/10022323
+  if [ -t 1 ]; then
+    printf '\e[1;31m%s\e[0m\n' "$*"
+  else
+    printf '%s\n' "$*"
+  fi
 }
 
+die() {
+  local prompt_help=false exit_status=2
+  while (($# > 0)); do
+    case "$1" in
+    -h)
+      prompt_help=true
+      shift
+      ;;
+    -s)
+      exit_status=$2
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+    esac
+  done
+
+  (($# > 0)) && redPrint "$PROG: $*"
+  $prompt_help && echo "Try '$PROG --help' for more information."
+
+  exit "$exit_status"
+} >&2
+
 usage() {
-    local -r exit_code="${1:-0}"
-    (($# > 0)) && shift
-    # shellcheck disable=SC2015
-    [ "$exit_code" != 0 ] && local -r out=/dev/stderr || local -r out=/dev/stdout
-
-    (($# > 0)) && redEcho "$*$nl" >$out
-
-    cat >$out <<EOF
-Usage: ${PROG} [OPTION]... [command [command_args ...]]
+  cat <<EOF
+Usage: $PROG [OPTION]... [command [command_args ...]]
 Run command and put output to system clipper.
 If no command is specified, read from stdin(pipe).
 
 Example:
-  ${PROG} echo "hello world!"
-  ${PROG} grep -i 'hello world' menu.h main.c
-  set | ${PROG}
-  ${PROG} -q < ~/.ssh/id_rsa.pub
+  $PROG grep -i 'hello world' menu.h main.c
+  set | $PROG
+  $PROG -q < ~/.ssh/id_rsa.pub
 
 Options:
   -k, --keep-eol  do not trim new line at end of file
@@ -69,12 +71,12 @@ Options:
   -V, --version   display version information and exit
 EOF
 
-    exit "$exit_code"
+  exit
 }
 
 progVersion() {
-    echo "$PROG $PROG_VERSION"
-    exit
+  printf '%s\n' "$PROG $PROG_VERSION"
+  exit
 }
 
 ################################################################################
@@ -82,72 +84,84 @@ progVersion() {
 ################################################################################
 
 quiet=false
-eol=-n
-declare -a args=()
-while [ $# -gt 0 ]; do
-    case "$1" in
-    -k | --keep-eol)
-        eol=
-        shift
-        ;;
-    -q | --quiet)
-        quiet=true
-        shift
-        ;;
-    -h | --help)
-        usage
-        ;;
-    -V | --version)
-        progVersion
-        ;;
-    --)
-        shift
-        args=(${args[@]:+"${args[@]}"} "$@")
-        break
-        ;;
-    -*)
-        usage 2 "${PROG}: unrecognized option '$1'"
-        ;;
-    *)
-        # if not option, treat all follow args as command
-        args=(${args[@]:+"${args[@]}"} "$@")
-        break
-        ;;
-    esac
+keep_eol=false
+target_command=()
+while (($# > 0)); do
+  case "$1" in
+  -k | --keep-eol)
+    keep_eol=true
+    shift
+    ;;
+  -q | --quiet)
+    quiet=true
+    shift
+    ;;
+  -h | --help)
+    usage
+    ;;
+  -V | --version)
+    progVersion
+    ;;
+  --)
+    shift
+    target_command=(${target_command[@]:+"${target_command[@]}"} "$@")
+    break
+    ;;
+  -*)
+    die -h "unrecognized option '$1'"
+    ;;
+  *)
+    # if not option, treat all follow arguments as command
+    target_command=(${target_command[@]:+"${target_command[@]}"} "$@")
+    break
+    ;;
+  esac
 done
 
-readonly eol quiet args
+readonly keep_eol quiet target_command
+
+if ((${#target_command[@]} > 0)) && ! type -P "${target_command[0]}" &>/dev/null; then
+  die "command '${target_command[0]}' not found on PATH"
+fi
 
 ################################################################################
 # biz logic
 ################################################################################
 
-copy() {
-    case "$(uname)" in
-    Darwin*)
-        pbcopy
-        ;;
-    CYGWIN* | MINGW*)
-        clip
-        ;;
-    *)
-        xsel -b
-        ;;
-    esac
+systemClip() {
+  case "$(uname)" in
+  Darwin*)
+    pbcopy
+    ;;
+  CYGWIN* | MINGW*)
+    clip
+    ;;
+  *)
+    xsel -b
+    ;;
+  esac
+}
+
+bufferCopy() {
+  local content
+  content=$(cat)
+  if $keep_eol; then
+    printf '%s\n' "$content"
+  else
+    printf %s "$content"
+  fi | systemClip
 }
 
 teeAndCopy() {
-    # shellcheck disable=SC2015
-    $quiet && local -r out=/dev/null || local -r out=/dev/stdout
-    tee >(
-        content="$(cat)"
-        # shellcheck disable=SC2086
-        echo $eol "$content" | copy
-    ) >$out
+  if $quiet; then
+    bufferCopy
+  else
+    tee >(bufferCopy)
+  fi
 }
 
-if [ ${#args[@]} -eq 0 ]; then
-    teeAndCopy
+if ((${#target_command[@]} == 0)); then
+  teeAndCopy
 else
-    "${args[@]}" | teeAndCopy
+  command "${target_command[@]}" | teeAndCopy
 fi

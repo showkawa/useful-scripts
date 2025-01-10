@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @Function
 # convert to Relative Path.
 #
@@ -8,117 +8,161 @@
 #   # if more than 1 argument, print relative path to last argument.
 #   $ ./rp a.txt ../b.txt /etc/passwd /etc/apache2
 #
-# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-2.x/docs/shell.md#-ap-and-rp
+# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/shell.md#-ap-and-rp
 # @author Jerry Lee (oldratlee at gmail dot com)
 set -eEuo pipefail
 
-# NOTE: DO NOT declare var PROG as readonly in ONE line!
-PROG="$(basename "$0")"
-readonly PROG
-readonly PROG_VERSION='2.5.0-dev'
+readonly PROG=${0##*/}
+readonly PROG_VERSION='3.x-dev'
 
 ################################################################################
 # util functions
 ################################################################################
 
-# NOTE: $'foo' is the escape sequence syntax of bash
-readonly ec=$'\033'      # escape char
-readonly eend=$'\033[0m' # escape end
-readonly nl=$'\n'        # new line
-
-colorEcho() {
-    local color="$1"
-    shift
-    # check isatty in bash https://stackoverflow.com/questions/10022323
-    # if stdout is console, turn on color output.
-    [ -t 1 ] && echo "${ec}[1;${color}m$*${eend}" || echo "$*"
+redPrint() {
+  # if stdout is a terminal, turn on color output.
+  #   '-t' check: is a terminal?
+  #   check isatty in bash https://stackoverflow.com/questions/10022323
+  if [ -t 1 ]; then
+    printf '\e[1;31m%s\e[0m\n' "$*"
+  else
+    printf '%s\n' "$*"
+  fi
 }
 
-redEcho() {
-    colorEcho 31 "$@"
+die() {
+  local prompt_help=false exit_status=2
+  while (($# > 0)); do
+    case "$1" in
+    -h)
+      prompt_help=true
+      shift
+      ;;
+    -s)
+      exit_status=$2
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+    esac
+  done
+
+  (($# > 0)) && redPrint "$PROG: $*"
+  $prompt_help && echo "Try '$PROG --help' for more information."
+
+  exit "$exit_status"
+} >&2
+
+portableRelPath() {
+  local file=$1 relTo=$2 uname
+
+  uname=$(uname)
+  case "$uname" in
+  Linux* | CYGWIN* | MINGW*)
+    realpath "$f" --relative-to="$relTo"
+    ;;
+  Darwin*)
+    local py_args=(-c 'import os, sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "$file" "$relTo")
+    if type -P grealpath >/dev/null; then
+      grealpath "$f" --relative-to="$relTo"
+    elif type -P python3 >/dev/null; then
+      python3 "${py_args[@]}"
+    elif type -P python >/dev/null; then
+      python "${py_args[@]}"
+    else
+      die "fail to find command(grealpath/python3/python) to get relative path!"
+    fi
+    ;;
+  *)
+    die "uname($uname) NOT support!"
+    ;;
+  esac
 }
 
 usage() {
-    local -r exit_code="${1:-0}"
-    (($# > 0)) && shift
-    # shellcheck disable=SC2015
-    [ "$exit_code" != 0 ] && local -r out=/dev/stderr || local -r out=/dev/stdout
-
-    (($# > 0)) && redEcho "$*$nl" >$out
-
-    cat >$out <<EOF
-Usage: ${PROG} [OPTION]... ARG...
+  cat <<EOF
+Usage: $PROG [OPTION]... [FILE]...
 convert to Relative Path.
 
 Example:
-  ${PROG} arg1 arg2
-  ${PROG} */*.py
+  $PROG path    # relative to current dir
+  $PROG path1 relativeToPath
+  $PROG */*.c relativeToPath
 
 Options:
   -h, --help      display this help and exit
   -V, --version   display version information and exit
 EOF
 
-    exit "$exit_code"
+  exit
 }
 
 progVersion() {
-    echo "$PROG $PROG_VERSION"
-    exit
+  printf '%s\n' "$PROG $PROG_VERSION"
+  exit
 }
 
 ################################################################################
 # parse options
 ################################################################################
 
-declare -a files=()
-while [ $# -gt 0 ]; do
-    case "$1" in
-    -h | --help)
-        usage
-        ;;
-    -V | --version)
-        progVersion
-        ;;
-    --)
-        shift
-        files=(${files[@]:+"${files[@]}"} "$@")
-        break
-        ;;
-    -*)
-        usage 2 "${PROG}: unrecognized option '$1'"
-        break
-        ;;
-    *)
-        # if not option, treat all follow files as args
-        files=(${files[@]:+"${files[@]}"} "$@")
-        break
-        ;;
-    esac
+files=()
+while (($# > 0)); do
+  case "$1" in
+  -h | --help)
+    usage
+    ;;
+  -V | --version)
+    progVersion
+    ;;
+  --)
+    shift
+    files=(${files[@]:+"${files[@]}"} "$@")
+    break
+    ;;
+  -*)
+    die -h "unrecognized option '$1'"
+    ;;
+  *)
+    # if not option, treat all follow files as args
+    files=(${files[@]:+"${files[@]}"} "$@")
+    break
+    ;;
+  esac
 done
 
-[ "${#files[@]}" -eq 0 ] && {
-    redEcho "Error: NO argument!" 1>&2
-    exit 1
-}
+((${#files[@]} == 0)) && die -h "requires at least one argument!"
 
-if [ "${#files[@]}" -eq 1 ]; then
-    relativeTo=.
+if ((${#files[@]} == 1)); then
+  relativeTo=.
 else
-    argc="${#files[@]}"
+  argc=${#files[@]}
 
-    # Get last argument
-    relativeTo="${files[argc - 1]}"
-    files=("${files[@]:0:argc-1}")
+  # Get last argument
+  relativeTo=${files[argc - 1]}
+  files=("${files[@]:0:argc-1}")
 fi
 
-[ -f "$relativeTo" ] && relativeTo="$(dirname "$relativeTo")"
+[ -f "$relativeTo" ] && relativeTo=$(dirname -- "$relativeTo")
+[ -e "$relativeTo" ] || die "relativeTo dir($relativeTo): No such file or directory!"
+
 readonly files relativeTo
 
+################################################################################
+# biz logic
+################################################################################
+
+has_error=false
+
 for f in "${files[@]}"; do
-    ! [ -e "$f" ] && {
-        echo "$f does not exists!"
-        continue
-    }
-    realpath "$f" --relative-to="$relativeTo"
+  if [ -e "$f" ]; then
+    portableRelPath "$f" "$relativeTo"
+  else
+    redPrint "$PROG: $f: No such file or directory!" >&2
+    has_error=true
+  fi
 done
+
+# set exit status
+! $has_error

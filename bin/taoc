@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # @Function
-# cat lines colorfully. coat means *CO*lorful c*AT*.
+# tac lines colorfully. taoc means coat(*CO*lorful c*AT*) in reverse(last line first).
 #
 # @Usage
-#   $ echo -e 'Hello\nWorld' | coat
-#   $ coat /path/to/file1
-#   $ coat /path/to/file1 /path/to/file2
+#   $ echo -e 'Hello\nWorld' | taoc
+#   $ taoc /path/to/file1
+#   $ taoc /path/to/file1 /path/to/file2
 #
 # @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/shell.md#-coat
 # @author Jerry Lee (oldratlee at gmail dot com)
@@ -21,14 +21,14 @@ readonly PROG_VERSION='3.x-dev'
 usage() {
   cat <<EOF
 Usage: $PROG [OPTION]... [FILE]...
-cat lines colorfully.
+tac lines colorfully.
 
 Support options:
   --help     display this help and exit
   --version  output version information and exit
-All other options and arguments are delegated to command cat,
-more info see the help/man of command cat(e.g. cat --help).
-cat executable: $(type -P cat)
+All other options and arguments are delegated to command tac,
+more info see the help/man of command tac(e.g. tac --help).
+tac executable: $(type -P tac)
 EOF
 
   exit
@@ -36,7 +36,7 @@ EOF
 
 progVersion() {
   printf '%s version: %s\n' "$PROG" "$PROG_VERSION"
-  printf 'cat executable: %s\n' "$(type -P cat)"
+  printf 'tac executable: %s\n' "$(type -P tac)"
   exit
 }
 
@@ -52,10 +52,10 @@ unset args idx
 # biz logic
 ################################################################################
 
-# if stdout is not a terminal, use `cat` directly.
+# if stdout is not a terminal, use `tac` directly.
 #   '-t' check: is a terminal?
 #   check isatty in bash https://stackoverflow.com/questions/10022323
-[ -t 1 ] || exec cat "$@"
+[ -t 1 ] || exec tac "$@"
 
 readonly -a ROTATE_COLORS=(33 35 36 31 32 37 34)
 COLOR_INDEX=0
@@ -89,8 +89,4 @@ colorLines() {
   [ -z "$line" ] || rotateColorPrint "$line"
 }
 
-if (($# == 0)); then
-  colorLines
-else
-  cat "$@" | colorLines
-fi
+tac "$@" | colorLines

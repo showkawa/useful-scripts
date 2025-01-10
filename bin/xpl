@@ -1,49 +1,61 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # @Function
 # Open file in file explorer.
 #
 # @Usage
 #   $ ./xpf [file [file ...] ]
 #
-# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-2.x/docs/shell.md#-xpl-and-xpf
+# @online-doc https://github.com/oldratlee/useful-scripts/blob/dev-3.x/docs/shell.md#-xpl-and-xpf
 # @author Jerry Lee (oldratlee at gmail dot com)
-#
-# NOTE about Bash Traps and Pitfalls:
-#
-# 1. DO NOT combine var declaration and assignment which value supplied by subshell in ONE line!
-#    for example: readonly var1=$(echo value1)
-#                 local var2=$(echo value1)
-#
-#    Because the combination make exit code of assignment to be always 0,
-#      aka. the exit code of command in subshell is discarded.
-#      tested on bash 3.2.57/4.2.46
-#
-#    solution is separation of var declaration and assignment:
-#           var1=$(echo value1)
-#           readonly var1
-#           local var2
-#           var2=$(echo value1)
 set -eEuo pipefail
 
-# NOTE: DO NOT declare var PROG as readonly in ONE line!
-PROG="$(basename "$0")"
-readonly PROG
-readonly PROG_VERSION='2.5.0-dev'
+readonly PROG=${0##*/}
+readonly PROG_VERSION='3.x-dev'
 
-readonly nl=$'\n' # new line
+################################################################################
+# util functions
+################################################################################
+
+redPrint() {
+  # if stdout is a terminal, turn on color output.
+  #   '-t' check: is a terminal?
+  #   check isatty in bash https://stackoverflow.com/questions/10022323
+  if [ -t 1 ]; then
+    printf '\e[1;31m%s\e[0m\n' "$*"
+  else
+    printf '%s\n' "$*"
+  fi
+}
+
+die() {
+  local prompt_help=false exit_status=2
+  while (($# > 0)); do
+    case "$1" in
+    -h)
+      prompt_help=true
+      shift
+      ;;
+    -s)
+      exit_status=$2
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+    esac
+  done
+
+  (($# > 0)) && redPrint "$PROG: $*"
+  $prompt_help && echo "Try '$PROG --help' for more information."
+
+  exit "$exit_status"
+} >&2
 
 usage() {
-    local -r exit_code="${1:-0}"
-    (($# > 0)) && shift
-    # shellcheck disable=SC2015
-    [ "$exit_code" != 0 ] && local -r out=/dev/stderr || local -r out=/dev/stdout
-
-    (($# > 0)) && echo "$*$nl" >$out
-
-    cat <<EOF
-Usage: ${PROG} [OPTION] [FILE]...
+  cat <<EOF
+Usage: $PROG [OPTION] [FILE]...
 Open file in file explorer.
-Example: ${PROG} file.txt
+Example: $PROG file.txt
 
 Options:
     -s, --selected  select the file or dir
@@ -51,91 +63,109 @@ Options:
     -V, --version   display version information and exit
 EOF
 
-    # shellcheck disable=SC2086
-    exit "$exit_code"
+  exit
 }
 
 progVersion() {
-    echo "$PROG $PROG_VERSION"
-    exit
+  printf '%s\n' "$PROG $PROG_VERSION"
+  exit
 }
-
-# if program name is xpf, set option selected!
-[ "xpf" == "${PROG}" ] && selected=true
 
 ################################################################################
 # parse options
 ################################################################################
 
-declare -a args=()
+files=()
 selected=false
-while [ $# -gt 0 ]; do
-    case "$1" in
-    -s | --selected)
-        selected=true
-        shift
-        ;;
-    -h | --help)
-        usage
-        ;;
-    -V | --version)
-        progVersion
-        ;;
-    --)
-        shift
-        args=(${args[@]:+"${args[@]}"} "$@")
-        break
-        ;;
-    -*)
-        usage 2 "${PROG}: unrecognized option '$1'"
-        ;;
-    *)
-        args=(${args[@]:+"${args[@]}"} "$1")
-        shift
-        ;;
-    esac
+while (($# > 0)); do
+  case "$1" in
+  -s | --selected)
+    selected=true
+    shift
+    ;;
+  -h | --help)
+    usage
+    ;;
+  -V | --version)
+    progVersion
+    ;;
+  --)
+    shift
+    files=(${files[@]:+"${files[@]}"} "$@")
+    break
+    ;;
+  -*)
+    die -h "unrecognized option '$1'"
+    ;;
+  *)
+    files=(${files[@]:+"${files[@]}"} "$1")
+    shift
+    ;;
+  esac
 done
 
-readonly args selected
+# if files is empty, use one element "."
+files=("${files[@]:-.}")
+
+# if program name is xpf, set option selected!
+[ "xpf" = "$PROG" ] && selected=true
+
+readonly files selected
 
 ################################################################################
-# biz options
+# biz logic
 ################################################################################
 
 # open one file
 openOneFile() {
-    local file="$1" slt="${selected}"
+  local file=$1 slt=$selected
 
-    case "$(uname)" in
-    Darwin*)
-        [ -f "${file}" ] && slt=true
-        open ${slt:+-R} "$file"
-        ;;
-    CYGWIN*)
-        [ -f "${file}" ] && slt=true
-        explorer ${slt:+/select,} "$(cygpath -w "${file}")"
-        ;;
-    *)
-        if [ -d "${file}" ]; then
-            nautilus "$(dirname "${file}")"
-        else
-            if [ -z "${slt}" ]; then
-                nautilus "$(dirname "${file}")"
-            else
-                nautilus "${file}"
-            fi
-        fi
-        ;;
-    esac
+  case "$(uname)" in
+  Darwin*)
+    [ -f "$file" ] && slt=true
+    if $slt; then
+      open -R "$file"
+    else
+      open "$file"
+    fi
+    ;;
+  CYGWIN*)
+    [ -f "$file" ] && slt=true
+    if $slt; then
+      explorer /select, "$(cygpath -w "$file")"
+    else
+      explorer "$(cygpath -w "$file")"
+    fi
+    ;;
+  *)
+    if [ -d "$file" ]; then
+      nautilus "$(dirname -- "$file")"
+    else
+      if $slt; then
+        nautilus "$file"
+      else
+        nautilus "$(dirname -- "$file")"
+      fi
+    fi
+    ;;
+  esac
+
+  local selected_msg
+  $slt && selected_msg='with selection'
+  printf 'open %14s: %s\n' "$selected_msg" "$file"
 }
 
-[ "${#args[@]}" == 0 ] && files=(.) || files=("${args[@]}")
-for file in "${files[@]}"; do
-    [ ! -e "$file" ] && {
-        echo "$file not existed!"
-        continue
-    }
+has_error=false
 
-    openOneFile "$file"
-    echo "$file opened${selected:+ with selection}!"
+for file in "${files[@]}"; do
+  [ -e "$file" ] || {
+    has_error=true
+    redPrint "$PROG: $file: No such file or directory!" >&2
+    continue
+  }
+
+  openOneFile "$file" || has_error=true
 done
+
+# set exit status
+! $has_error
